@@ -66,7 +66,7 @@ class BurgleC {
     to_floor(walls: boolean[]): Floor {
         let i = 0;
         let x = 0;
-        const floor: Tile[] = Array(this.size_sq + 1)
+        const floor: Tile[] = Array(this.size_sq)
             .fill(0)
             .map(() => new Tile());
         for (let y = 0; y < this.size; y++) {
