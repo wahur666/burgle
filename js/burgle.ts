@@ -54,7 +54,7 @@ class BurgleC {
 
     parseWalls(str: string): boolean[] {
         let walls: boolean[] = [];
-        for (let i = str.length; i > 0; i -= 1) {
+        for (let i = str.length - 1; i >= 0; i -= 1) {
             const c = parseInt(str[i], 32);
             for (let j = 0; j < 5; j++) {
                 walls.push((c & (1 << j)) > 0);
@@ -487,8 +487,25 @@ class BurgleC {
         this.show_heat(this.heatmap);
     }
 
+    set_dims(opt) {
+        this.size = opt.size;
+        this.shaft = opt.shaft;
+        this.size_sq = this.size * this.size;
+    }
+
+    _set(opt) {
+        this.set_dims(opt)
+    }
+
 }
 
-// @ts-ignore
-window.Burgle = new BurgleC()
+const b = new BurgleC();
 
+// @ts-ignore
+window.Burgle = b
+
+// @ts-ignore
+if (window.process !== undefined) {
+// @ts-ignore
+    module.exports = b;
+}

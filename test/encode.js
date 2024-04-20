@@ -1,3 +1,5 @@
+window = globalThis
+
 //Encode works on 5 bits at a time using base 32 as in/out
 var b = require('../js/burgle');
 var assert = require('chai').assert;
