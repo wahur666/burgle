@@ -1,20 +1,31 @@
 "use strict";
 
+class Tile {
+    heat: number = 0;
+    e: boolean = false;
+    n: boolean = false;
+    s: boolean = false;
+    w: boolean = false;
+    v: boolean = false;
+}
+
+type Floor = Tile[];
+
 class BurgleC {
 
-    heatmap = false;
-    floors = 3;
-    size = 4;
-    walls = 8;
-    shaft = -1;
-    size_sq = this.size * this.size;
-    default_jobs = [
+    heatmap: boolean = false;
+    floors: number = 3;
+    size: number = 4;
+    walls: number = 8;
+    shaft: number = -1;
+    size_sq: number = this.size * this.size;
+    default_jobs: string[][] = [
         ["703h1", "e0607", "81ll0"],
         ["190m3", "11hu0"],
         ["2934c5k0", "611cc425"]
     ]
 
-    getParameterByName(name: string) {
+    getParameterByName(name: string): string {
         name = name.replace(/\[/, "\\[").replace(/]/, "\\]");
         const regex = new RegExp("[\\?&]" + name + "=([^&#]*)");
         const results = regex.exec(location.search);
@@ -23,10 +34,10 @@ class BurgleC {
             : decodeURIComponent(results[1].replace(/\+/g, " "));
     }
 
-    wallsToString(walls) {
-        let val = 0;
-        let j = (walls.length - 1) % 5;
-        let str = "";
+    wallsToString(walls: boolean[]): string {
+        let val: number = 0;
+        let j: number = (walls.length - 1) % 5;
+        let str: string = "";
         for (let i = walls.length - 1; i >= 0; i--) {
             if (walls[i]) {
                 val |= 1 << j;
@@ -41,35 +52,23 @@ class BurgleC {
         return str;
     }
 
-    parseWalls(str) {
-        let walls = [];
-        let i = str.length;
-        let c;
-        let j;
-        while (i--) {
-            c = parseInt(str[i], 32);
-            for (j = 0; j < 5; j++) {
-                walls.push(!!(c & (1 << j)));
+    parseWalls(str: string): boolean[] {
+        let walls: boolean[] = [];
+        for (let i = str.length; i > 0; i -= 1) {
+            const c = parseInt(str[i], 32);
+            for (let j = 0; j < 5; j++) {
+                walls.push((c & (1 << j)) > 0);
             }
         }
         return walls;
     }
 
-    to_floor(walls) {
+    to_floor(walls: boolean[]): Floor {
         let i = 0;
         let x = 0;
-        const floor = new Array(this.size_sq + 1)
-            .join("1")
-            .split("")
-            .map(function () {
-                return {
-                    heat: 0,
-                    e: false,
-                    n: false,
-                    s: false,
-                    w: false
-                };
-            });
+        const floor: Tile[] = Array(this.size_sq + 1)
+            .fill(0)
+            .map(() => new Tile());
         for (let y = 0; y < this.size; y++) {
             for (x = 0; x < this.size - 1; x++) {
                 if (!walls[i]) {
@@ -91,7 +90,7 @@ class BurgleC {
         return floor;
     }
 
-    valid(floor) {
+    valid(floor: Floor): boolean {
         const check = [this.shaft === 0 ? 1 : 0];
         let visited = 0;
         if (this.shaft > -1) {
@@ -104,42 +103,58 @@ class BurgleC {
             if (tile.v) continue;
             visited++;
             tile.v = true;
-            if (tile.n) check.push(next - this.size);
-            if (tile.e) check.push(next + 1);
-            if (tile.s) check.push(next + this.size);
-            if (tile.w) check.push(next - 1);
+            if (tile.n) {
+                check.push(next - this.size);
+            }
+            if (tile.e) {
+                check.push(next + 1);
+            }
+            if (tile.s) {
+                check.push(next + this.size);
+            }
+            if (tile.w) {
+                check.push(next - 1);
+            }
         }
         return visited === this.size_sq;
     }
 
-    update_distance(a_ind, b_ind, dist) {
-        if (a_ind === this.shaft || b_ind === this.shaft) return;
-
+    update_distance(a_ind: number, b_ind: number, dist: number[]) {
+        if (a_ind === this.shaft || b_ind === this.shaft) {
+            return;
+        }
         let a = a_ind * this.size_sq;
         let b = b_ind * this.size_sq;
         for (let i = 0; i < this.size_sq; i++) {
-            if (dist[a] < dist[b]) dist[b] = dist[a] + 1;
-            else if (dist[b] < dist[a]) dist[a] = dist[b] + 1;
+            if (dist[a] < dist[b]) {
+                dist[b] = dist[a] + 1;
+            } else if (dist[b] < dist[a]) {
+                dist[a] = dist[b] + 1;
+            }
             a++;
             b++;
         }
     }
 
-    build_distance(floor) {
-        let i;
-        const dist = new Array(this.size_sq * this.size_sq + 1)
-            .join("1")
-            .split("")
-            .map(function () {
-                return 50;
-            });
-        for (i = 0; i < this.size_sq; i++) dist[i * this.size_sq + i] = 0;
+    build_distance(floor: Floor): number[] {
+        const dist = Array(this.size_sq * this.size_sq + 1).fill(50);
+        for (let i = 0; i < this.size_sq; i++) {
+            dist[i * this.size_sq + i] = 0;
+        }
         for (let r = 0; r < this.size_sq; r++) {
-            for (i = 0; i < this.size_sq; i++) {
-                if (floor[i].n) this.update_distance(i, i - this.size, dist);
-                if (floor[i].e) this.update_distance(i, i + 1, dist);
-                if (floor[i].s) this.update_distance(i, i + this.size, dist);
-                if (floor[i].w) this.update_distance(i, i - 1, dist);
+            for (let i = 0; i < this.size_sq; i++) {
+                if (floor[i].n) {
+                    this.update_distance(i, i - this.size, dist);
+                }
+                if (floor[i].e) {
+                    this.update_distance(i, i + 1, dist);
+                }
+                if (floor[i].s) {
+                    this.update_distance(i, i + this.size, dist);
+                }
+                if (floor[i].w) {
+                    this.update_distance(i, i - 1, dist);
+                }
             }
         }
         return dist;
@@ -148,7 +163,7 @@ class BurgleC {
     //from: index of tile
     //to: index of tile
     //options: array of [radians, neighbor's index]
-    find_clockwise(from, to, options) {
+    find_clockwise(from: number, to: number, options: [number, number][]) {
         const dy = Math.floor(to / this.size) - Math.floor(from / this.size);
         const dx = (to % this.size) - (from % this.size);
         const target = Math.atan2(dy, dx);
@@ -166,14 +181,16 @@ class BurgleC {
         return dir;
     }
 
-    walk(from, to, floor, dist) {
-        if (from === this.shaft || to === this.shaft) return;
+    walk(from: number, to: number, floor: Floor, dist: number[]) {
+        if (from === this.shaft || to === this.shaft) {
+            return;
+        }
 
-        let min;
-        let shortest = [];
-        let tile;
+        let min: number;
+        let shortest: [number, number][] = [];
+        let tile: Tile;
 
-        const look = (dir, neighbor, r) => {
+        const look = (dir: string, neighbor: number, r: number) => {
             const ind = neighbor * this.size_sq + to;
             if (tile[dir]) {
                 if (dist[ind] < min) {
@@ -201,7 +218,7 @@ class BurgleC {
         }
     }
 
-    show_heat(show) {
+    show_heat(show: boolean) {
         this.heatmap = show;
         if (this.heatmap) {
             document.getElementById("show_heatmap").setAttribute("class", "hidden");
@@ -232,8 +249,8 @@ class BurgleC {
         this.update_dom();
     }
 
-    get_walls(tile) {
-        const dec = tile.size - 1;
+    get_walls(tile: number) {
+        const dec = this.size - 1;
         const max = 2 * this.size * dec;
         const off = tile % this.size;
         const row = Math.floor(tile / this.size) * (this.size + dec);
@@ -247,7 +264,7 @@ class BurgleC {
     }
 
     generate(id?: string) {
-        let f;
+        let f: number;
         let floors;
         const max = 2 * this.size * (this.size - 1);
         const permanent_walls = [];
@@ -294,24 +311,22 @@ class BurgleC {
         this.update_href();
     }
 
-    generate_heatmap(id, floor) {
-        let i;
-        let j;
+    generate_heatmap(id: string, floor: Floor) {
         let heat = [];
         if (!this.heatmap) {
-            for (i = 0; i < this.size_sq; i++) {
+            for (let i = 0; i < this.size_sq; i++) {
                 document.getElementById(id + "_t" + i).style.backgroundColor = "";
             }
             return;
         }
 
         const dist = this.build_distance(floor);
-        for (i = 0; i < this.size_sq; i++) {
-            for (j = 0; j < this.size_sq; j++) {
+        for (let i = 0; i < this.size_sq; i++) {
+            for (let j = 0; j < this.size_sq; j++) {
                 this.walk(i, j, floor, dist);
             }
         }
-        for (i = 0; i < this.size_sq; i++) {
+        for (let i = 0; i < this.size_sq; i++) {
             if (i !== this.shaft) {
                 let heat = (1.0 - (floor[i].heat - (this.size_sq - 1)) / 168) * 240;
                 document.getElementById(id + "_t" + i).style.backgroundColor =
@@ -331,14 +346,16 @@ class BurgleC {
             heat.push(r);
         }
         let total_heat = 0;
-        for (i = 0; i < this.size_sq; i++) {
+        for (let i = 0; i < this.size_sq; i++) {
             total_heat += floor[i].heat;
         }
     }
 
-    set_layout(id, walls) {
+    set_layout(id: string, walls: boolean[]): boolean {
         const floor = this.to_floor(walls);
-        if (!this.valid(floor)) return false;
+        if (!this.valid(floor)) {
+            return false;
+        }
         const f = document.getElementById(id);
         f.setAttribute("layout", this.wallsToString(walls));
         if (this.shaft > -1) {
@@ -353,14 +370,20 @@ class BurgleC {
 
     init() {
         const j = this.getParameterByName("job");
-        if (j !== "") (document.getElementById("job") as HTMLSelectElement).options[j].selected = true;
+        if (j !== "") {
+            (document.getElementById("job") as HTMLSelectElement).options[j].selected = true;
+        }
         this.update_job();
         const s = this.getParameterByName("s");
-        if (s !== "") this.shaft = parseInt(s, 36);
+        if (s !== "") {
+            this.shaft = parseInt(s, 36);
+        }
         if (this.getParameterByName("heat") !== "") {
             this.heatmap = true;
             const heat = document.getElementById("burgle_heat") as HTMLInputElement;
-            if (heat !== null) heat.checked = this.heatmap;
+            if (heat !== null) {
+                heat.checked = this.heatmap;
+            }
         }
         let haveFloorsInUrl = false;
         const floors = document.getElementsByClassName("floor");
@@ -371,8 +394,11 @@ class BurgleC {
                 haveFloorsInUrl = true;
             }
         }
-        if (!haveFloorsInUrl) this.generate();
-        else this.show_heat(this.heatmap);
+        if (!haveFloorsInUrl) {
+            this.generate();
+        } else {
+            this.show_heat(this.heatmap);
+        }
     }
 
     update_dom() {
@@ -427,8 +453,12 @@ class BurgleC {
         if (window.location.port) link += ":" + window.location.port;
         link += window.location.pathname + "?job=";
         link += (document.getElementById("job") as HTMLSelectElement).selectedIndex;
-        if (this.heatmap) link += "&heat=on";
-        if (this.shaft > -1) link += "&s=" + this.shaft.toString(36);
+        if (this.heatmap) { 
+            link += "&heat=on";
+        }
+        if (this.shaft > -1) { 
+            link += "&s=" + this.shaft.toString(36);
+        }
         const floors = document.getElementsByClassName("floor");
         for (let f = 0; f < floors.length; f++) {
             link +=
