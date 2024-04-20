@@ -12,7 +12,9 @@
   },
   "description": "Burgle Bros game layout generator",
   "main": "Gruntfile.js",
-  "dependencies": {},
+  "dependencies": {
+    "typescript": "^5.4.5"
+  },
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha"
   },

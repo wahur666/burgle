@@ -12,3 +12,4 @@ dist
 Session.vim
 .netrwhist
 *~
+.idea/
